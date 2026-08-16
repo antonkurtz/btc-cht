@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BTC / CHT — Bitcoin priced in Cheetos®</title>
+  <meta name="description" content="The only currency pair that matters: Bitcoin vs. Cheetos®. Map STRC & SATA yields into bags of Cheetos®." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --muted: #5c5c5c;
+      --accent: #E48C01;
+      --accent-soft: #fff4e0;
+      --border: #e8e4dc;
+      --green: #2d6a4f;
+    }
+
+    html.dark {
+      --bg: #121110;
+      --card: #1c1b19;
+      --text: #f2efe9;
+      --muted: #a39e95;
+      --accent: #E48C01;
+      --accent-soft: #2a1f0e;
+      --border: #2e2c28;
+      --green: #4ade80;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== Top controls ===== */
+    .top-controls {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    /* Compact sliding theme toggle (sun / moon) */
+    .theme-toggle {
+      position: relative;
+      width: 64px;
+      height: 32px;
+      border-radius: 999px;
+      background: #e8e4dc;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.25s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    html.dark .theme-toggle {
+      background: #2a2724;
+    }
+
+    .theme-toggle .knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    html.dark .theme-toggle .knob {
+      transform: translateX(32px);
+      background: #1c1b19;
+    }
+
+    .theme-toggle .icon {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      line-height: 1;
+      pointer-events: none;
+      opacity: 0.55;
+    }
+    .theme-toggle .icon.sun { left: 9px; }
+    .theme-toggle .icon.moon { right: 9px; }
+    html.dark .theme-toggle .icon.sun { opacity: 0.35; }
+    html.dark .theme-toggle .icon.moon { opacity: 0.9; color: #fff; }
+
+    /* Dust button */
+    .dust-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .dust-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .dust-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* Dust canvas */
+    #dustCanvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    #dustCanvas.on { opacity: 1; }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3.5rem 1.25rem 4rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Big hero */
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding-top: 0.5rem;
+    }
+    .logo {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.35rem;
+      font-weight: 500;
+    }
+    h1 {
+      font-size: clamp(3.6rem, 14vw, 5.8rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 0.95;
+      margin-bottom: 1rem;
+    }
+    h1 .slash { color: var(--accent); font-weight: 300; margin: 0 0.06em; }
+    h1 .cht { color: var(--accent); letter-spacing: -0.03em; }
+
+    .subtitle {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 26rem;
+      margin: 0 auto;
+      line-height: 1.45;
+    }
+
+    /* Live rate card */
+    .hero {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 2.25rem 1.5rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .pair-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.7rem;
+    }
+    .big-number {
+      font-size: clamp(3rem, 11vw, 4.6rem);
+      font-weight: 750;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .big-number .unit {
+      font-size: 0.42em;
+      font-weight: 650;
+      color: var(--accent);
+      margin-left: 0.12em;
+      letter-spacing: 0.02em;
+    }
+    .hero-meta {
+      font-size: 0.98rem;
+      color: var(--muted);
+      margin-top: 0.85rem;
+    }
+    .hero-meta strong { color: var(--text); }
+
+    .definition {
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 12px;
+      padding: 1.05rem 1.25rem;
+      margin-bottom: 2.25rem;
+      font-size: 0.97rem;
+      text-align: center;
+    }
+    .definition strong { color: var(--accent); }
+
+    .section-title {
+      font-size: 0.78rem;
+      font-weight: 650;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .yield-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2.25rem;
+    }
+    @media (max-width: 520px) { .yield-grid { grid-template-columns: 1fr; } }
+
+    .yield-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem 1.2rem;
+      text-align: center;
+    }
+    .yield-card .ticker {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .yield-card .cht-value {
+      font-size: 2.15rem;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+      line-height: 1.1;
+    }
+    .yield-card .cht-value span {
+      font-size: 0.52em;
+      font-weight: 650;
+      margin-left: 0.18em;
+      letter-spacing: 0.01em;
+    }
+    .yield-card .detail { font-size: 0.88rem; color: var(--muted); margin-top: 0.45rem; }
+    .yield-card .rate { font-size: 0.8rem; color: var(--green); font-weight: 600; margin-top: 0.3rem; }
+
+    .calculator {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.85rem 1.5rem;
+      margin-bottom: 2.25rem;
+    }
+    .calc-title {
+      font-size: 1.12rem;
+      font-weight: 650;
+      margin-bottom: 1.3rem;
+      text-align: center;
+    }
+    .calc-row {
+      display: flex;
+      gap: 0.7rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .calc-row label { font-size: 0.92rem; color: var(--muted); }
+
+    input[type="number"] {
+      width: 110px;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+      background: var(--bg);
+      color: var(--text);
+    }
+    input[type="number"]:focus {
+      outline: 2px solid var(--accent);
+      border-color: transparent;
+    }
+    select {
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .result-box {
+      background: var(--accent-soft);
+      border-radius: 10px;
+      padding: 1.15rem;
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .result-box .result-number {
+      font-size: 1.85rem;
+      font-weight: 750;
+      color: var(--accent);
+    }
+    .result-box .result-label {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Chart */
+    .chart-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.6rem 1.25rem 1.5rem;
+      margin-bottom: 2.25rem;
+    }
+    .chart-header { text-align: center; margin-bottom: 1.1rem; }
+    .chart-header h3 { font-size: 1.05rem; font-weight: 650; margin-bottom: 0.2rem; }
+    .chart-header p { font-size: 0.82rem; color: var(--muted); }
+    .chart-wrap {
+      position: relative;
+      height: 210px;
+      width: 100%;
+    }
+    #chtChart {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .explainer {
+      font-size: 0.93rem;
+      color: var(--muted);
+      text-align: center;
+      max-width: 32rem;
+      margin: 0 auto 2.5rem;
+      line-height: 1.6;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.77rem;
+      color: #8a8a8a;
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      line-height: 1.55;
+    }
+    html.dark footer { color: #6b6760; }
+
+    .live-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: #22c55e;
+      border-radius: 50%;
+      margin-right: 5px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-controls">
+    <button class="dust-btn" id="dustToggle" title="Toggle Cheetos® dust">✨</button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle light / dark" aria-label="Toggle theme">
+      <span class="icon sun">☀</span>
+      <span class="icon moon">☾</span>
+      <span class="knob"></span>
+    </button>
+  </div>
+
+  <canvas id="dustCanvas"></canvas>
+
+  <div class="container">
+    <header>
+      <div class="logo">The only pair that matters</div>
+      <h1>BTC<span class="slash">/</span><span class="cht">CHT</span></h1>
+      <p class="subtitle">Bitcoin priced in bags of Cheetos®.<br>Yield from STRC &amp; SATA, measured in crunch.</p>
+    </header>
+
+    <div class="hero">
+      <div class="pair-label"><span class="live-dot"></span>Live rate</div>
+      <div class="big-number" id="btcCht">15,858 <span class="unit">CHT</span></div>
+      <div class="hero-meta">
+        1 BTC = <strong id="btcChtText">15,858</strong> bags of Cheetos®<br>
+        <span id="btcUsd" style="font-size:0.85em;opacity:0.8">BTC ≈ $62,956</span>
+      </div>
+    </div>
+
+    <div class="definition">
+      <strong>1 CHT</strong> = 1 standard 8.5&nbsp;oz bag of Cheetos® = <strong>$3.97</strong>
+    </div>
+
+    <div class="section-title">Monthly yield → Cheetos®</div>
+
+    <div class="yield-grid">
+      <div class="yield-card">
+        <div class="ticker">STRC</div>
+        <div class="cht-value">0.252 <span>CHT</span></div>
+        <div class="detail">per share / month</div>
+        <div class="rate">12% · $1.00 cash</div>
+      </div>
+      <div class="yield-card">
+        <div class="ticker">SATA</div>
+        <div class="cht-value">0.273 <span>CHT</span></div>
+        <div class="detail">per share / month</div>
+        <div class="rate">13% · ~$1.08 cash</div>
+      </div>
+    </div>
+
+    <div class="calculator">
+      <div class="calc-title">Cheetos® Yield Calculator</div>
+      <div class="calc-row">
+        <label>I hold</label>
+        <input type="number" id="shares" value="100" min="1" step="1" />
+        <select id="ticker">
+          <option value="strc">STRC</option>
+          <option value="sata">SATA</option>
+        </select>
+        <label>shares</label>
+      </div>
+      <div class="result-box">
+        <div class="result-number" id="resultCht">25.2</div>
+        <div class="result-label">bags of Cheetos® per month</div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-header">
+        <h3>CHT Price History</h3>
+        <p>Approximate retail price of a standard 8.5 oz Cheetos® bag (USD)</p>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chtChart" width="680" height="210"></canvas>
+      </div>
+    </div>
+
+    <p class="explainer">
+      One share of STRC currently buys you about a quarter of a bag of Cheetos® every month with its dividend.
+      It takes roughly <strong>4 shares</strong> of STRC to generate enough monthly yield for one full bag.
+      SATA does a little better at ~3.7 shares per bag.
+    </p>
+
+    <footer>
+      Not financial advice. Rates as of August 2026.<br>
+      STRC (Strategy) 12% annualized · SATA (Strive) 13% annualized.<br>
+      Cheetos® price based on common Walmart 8.5&nbsp;oz bag pricing ($3.97).<br>
+      Historical CHT prices are approximate / illustrative. BTC price updates when network allows.<br><br>
+      Cheetos® is a registered trademark of Frito-Lay® (a division of PepsiCo). This site is not affiliated with, endorsed by, or sponsored by Frito-Lay or PepsiCo.<br>
+      <a href="https://www.cheetos.com/" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">cheetos.com</a>
+    </footer>
+  </div>
+
+  <script>
+    const CHT_USD = 3.97;
+    const STRC_MONTHLY = 1.00;
+    const SATA_MONTHLY = 1.0836;
+    const strcCht = STRC_MONTHLY / CHT_USD;
+    const sataCht = SATA_MONTHLY / CHT_USD;
+
+    function formatNumber(n, decimals = 0) {
+      return n.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    // Set a solid starting value so the page never shows a dash
+    function setBtcDisplay(btcUsd) {
+      const cht = btcUsd / CHT_USD;
+      document.getElementById('btcCht').innerHTML = formatNumber(Math.round(cht)) + ' <span class="unit">CHT</span>';
+      document.getElementById('btcChtText').textContent = formatNumber(Math.round(cht));
+      document.getElementById('btcUsd').textContent = 'BTC ≈ $' + formatNumber(Math.round(btcUsd));
+    }
+
+    // Immediate fallback so something always shows
+    setBtcDisplay(62956);
+
+    async function updateBtc() {
+      try {
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', { cache: 'no-store' });
+        if (!res.ok) throw new Error('network');
+        const data = await res.json();
+        if (data && data.bitcoin && data.bitcoin.usd) {
+          setBtcDisplay(data.bitcoin.usd);
+        }
+      } catch (e) {
+        // keep the last good value (or the initial fallback)
+      }
+    }
+
+    function updateCalc() {
+      const shares = parseFloat(document.getElementById('shares').value) || 0;
+      const ticker = document.getElementById('ticker').value;
+      const perShare = ticker === 'strc' ? strcCht : sataCht;
+      document.getElementById('resultCht').textContent = formatNumber(shares * perShare, 1);
+    }
+
+    document.getElementById('shares').addEventListener('input', updateCalc);
+    document.getElementById('ticker').addEventListener('change', updateCalc);
+
+    // Theme toggle
+    const themeBtn = document.getElementById('themeToggle');
+    function setTheme(dark) {
+      document.documentElement.classList.toggle('dark', dark);
+      localStorage.setItem('cht-theme', dark ? 'dark' : 'light');
+      drawChart(); // redraw with new colors
+    }
+    themeBtn.addEventListener('click', () => {
+      setTheme(!document.documentElement.classList.contains('dark'));
+    });
+    if (localStorage.getItem('cht-theme') === 'dark') setTheme(true);
+
+    // ===== Dust =====
+    const canvas = document.getElementById('dustCanvas');
+    const ctx = canvas.getContext('2d');
+    let dustOn = false;
+    let particles = [];
+    let animId = null;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function createParticle() {
+      return {
+        x: Math.random() * canvas.width,
+        y: -10 - Math.random() * 80,
+        size: 0.6 + Math.random() * 1.4,          // finer
+        speed: 0.9 + Math.random() * 2.2,         // faster fall
+        drift: (Math.random() - 0.5) * 1.8,       // more sideways chaos
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.04 + Math.random() * 0.08,
+        opacity: 0.2 + Math.random() * 0.55
+      };
+    }
+
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < 85; i++) {              // a few more fine particles
+        const p = createParticle();
+        p.y = Math.random() * canvas.height;
+        particles.push(p);
+      }
+    }
+
+    function drawDust() {
+      if (!dustOn) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.wobble += p.wobbleSpeed;
+        p.y += p.speed;
+        p.x += p.drift + Math.sin(p.wobble) * 0.7;  // chaotic lateral motion
+
+        if (p.y > canvas.height + 12) {
+          p.y = -12;
+          p.x = Math.random() * canvas.width;
+        }
+        if (p.x < -12) p.x = canvas.width + 12;
+        if (p.x > canvas.width + 12) p.x = -12;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(228, 140, 1, ${p.opacity})`;
+        ctx.fill();
+      });
+      animId = requestAnimationFrame(drawDust);
+    }
+
+    const dustBtn = document.getElementById('dustToggle');
+    dustBtn.addEventListener('click', () => {
+      dustOn = !dustOn;
+      dustBtn.classList.toggle('active', dustOn);
+      canvas.classList.toggle('on', dustOn);
+      if (dustOn) {
+        initParticles();
+        drawDust();
+      } else {
+        cancelAnimationFrame(animId);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+
+    // ===== Pure canvas chart (no external dependency) =====
+    const chtPrices = {
+      labels: ['2020', '2021', '2022', '2023', '2024', '2025', 'Aug 26'],
+      data: [3.29, 3.49, 3.79, 3.99, 4.29, 4.19, 3.97]
+    };
+
+    function drawChart() {
+      const c = document.getElementById('chtChart');
+      const parent = c.parentElement;
+      const w = parent.clientWidth;
+      const h = parent.clientHeight;
+      c.width = w * 2;   // retina
+      c.height = h * 2;
+      c.style.width = w + 'px';
+      c.style.height = h + 'px';
+      const ctx = c.getContext('2d');
+      ctx.scale(2, 2);
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const pad = { top: 18, right: 16, bottom: 32, left: 42 };
+      const chartW = w - pad.left - pad.right;
+      const chartH = h - pad.top - pad.bottom;
+
+      const minY = 3.0;
+      const maxY = 4.5;
+      const n = chtPrices.data.length;
+
+      // clear
+      ctx.clearRect(0, 0, w, h);
+
+      // grid + labels
+      ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+      ctx.fillStyle = isDark ? '#a39e95' : '#5c5c5c';
+      ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+
+      for (let i = 0; i <= 3; i++) {
+        const yVal = minY + (maxY - minY) * (i / 3);
+        const y = pad.top + chartH - (chartH * (i / 3));
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + chartW, y);
+        ctx.stroke();
+        ctx.fillText('$' + yVal.toFixed(2), pad.left - 8, y);
+      }
+
+      // x labels
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      chtPrices.labels.forEach((lab, i) => {
+        const x = pad.left + (chartW * i) / (n - 1);
+        ctx.fillText(lab, x, pad.top + chartH + 10);
+      });
+
+      // area fill
+      ctx.beginPath();
+      chtPrices.data.forEach((v, i) => {
+        const x = pad.left + (chartW * i) / (n - 1);
+        const y = pad.top + chartH - ((v - minY) / (maxY - minY)) * chartH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineTo(pad.left + chartW, pad.top + chartH);
+      ctx.lineTo(pad.left, pad.top + chartH);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(228, 140, 1, 0.12)';
+      ctx.fill();
+
+      // line
+      ctx.beginPath();
+      chtPrices.data.forEach((v, i) => {
+        const x = pad.left + (chartW * i) / (n - 1);
+        const y = pad.top + chartH - ((v - minY) / (maxY - minY)) * chartH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = '#E48C01';
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      // points
+      chtPrices.data.forEach((v, i) => {
+        const x = pad.left + (chartW * i) / (n - 1);
+        const y = pad.top + chartH - ((v - minY) / (maxY - minY)) * chartH;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#E48C01';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.strokeStyle = isDark ? '#1c1b19' : '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
+    // Init
+    updateCalc();
+    updateBtc();
+    setInterval(updateBtc, 60000);
+    // Draw chart after layout
+    requestAnimationFrame(() => {
+      drawChart();
+      window.addEventListener('resize', drawChart);
+    });
+  </script>
+</body>
+</html>
